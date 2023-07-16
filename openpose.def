@@ -1,0 +1,71 @@
+Bootstrap: docker
+From: zombbie/cuda11.1-cudnn8-ubuntu20.04:v1.0
+Stage: spython-base
+
+%post
+
+DEBIAN_FRONTEND=noninteractive
+NVIDIA_VISIBLE_DEVICES=all
+NVIDIA_DRIVER_CAPABILITIES=video,compute,utility
+CMAKE_VER="3.13.4"
+
+# Install required Packages
+
+set -xe && \
+apt-get update && \
+apt-get install -y \
+git sudo wget \
+qtbase5-dev \
+build-essential \
+ffmpeg \
+gdebi \
+libopencv-dev
+
+# Build & Install CMake
+
+mkdir -p /usr/local
+cd /usr/local
+set -xe && \
+wget -O /tmp/cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v${CMAKE_VER}/cmake-${CMAKE_VER}.tar.gz && \
+mkdir -p /usr/local/cmake && tar xzvf /tmp/cmake.tar.gz -C /usr/local/cmake --strip-components 1 && \
+cd /usr/local/cmake && \
+./configure --qt-gui && \
+./bootstrap && \
+make -j$(nproc) && \
+make install
+
+# Build OpenPose
+
+mkdir -p /usr/local
+cd /usr/local
+set -xe && \
+git clone https://github.com/CMU-Perceptual-Computing-Lab/openpose && \
+cd /usr/local/openpose && \
+bash ./scripts/ubuntu/install_deps.sh && \
+mkdir -p /usr/local/openpose/build && \
+cd /usr/local/openpose/build && \
+cmake .. && \
+make -j${nproc} && \
+make install
+
+# Cleanup
+
+mkdir -p /usr/local
+cd /usr/local
+set -xe && \
+apt-get clean && \
+rm -rf /tmp/cmake.tar.gz && \
+ln -s /usr/local/openpose/build/examples/openpose/openpose.bin /usr/local/bin/openpose.bin
+
+
+%environment
+export DEBIAN_FRONTEND=noninteractive
+export NVIDIA_VISIBLE_DEVICES=all
+export NVIDIA_DRIVER_CAPABILITIES=video,compute,utility
+export CMAKE_VER="3.13.4"
+%runscript
+cd /usr/local
+exec /usr/local/bin/openpose.bin --help "$@"
+%startscript
+cd /usr/local
+exec /usr/local/bin/openpose.bin --help "$@"
