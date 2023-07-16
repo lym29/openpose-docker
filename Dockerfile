@@ -1,4 +1,4 @@
-FROM zombbie/cuda11.1-cudnn8-ubuntu20.04:v1.0
+FROM nvidia/cuda:10.0-cudnn7-devel
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV NVIDIA_VISIBLE_DEVICES all
